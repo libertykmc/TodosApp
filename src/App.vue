@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 
 const loadTodos = (): { text: string; done: boolean }[] => {
   const storedTodos = localStorage.getItem("todos");
@@ -26,8 +26,6 @@ const removeTodo = (todo: { text: string; done: boolean }) => {
   todos.value = todos.value.filter((t) => t !== todo);
   saveTodos();
 };
-
-watch(todos, saveTodos, { deep: true });
 
 const filteredTodos = computed(() => {
   return hideCompleted.value ? todos.value.filter((t) => !t.done) : todos.value;
