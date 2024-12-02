@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 
-const loadTodos = (): { text: string; done: boolean }[] => {
+const loadTodos = (): { id: number; text: string; done: boolean }[] => {
   const storedTodos = localStorage.getItem("todos");
   return storedTodos ? JSON.parse(storedTodos) : [];
 };
 
 const hideCompleted = ref(false);
 const newTodo = ref("");
-const todos = ref<{ text: string; done: boolean }[]>(loadTodos());
+const todos = ref<{ id: number; text: string; done: boolean }[]>(loadTodos());
 
 const saveTodos = () => {
   localStorage.setItem("todos", JSON.stringify(todos.value));
@@ -16,14 +16,18 @@ const saveTodos = () => {
 
 const addTodo = () => {
   if (newTodo.value.trim()) {
-    todos.value.push({ text: newTodo.value.trim(), done: false });
+    todos.value.push({
+      id: Date.now(),
+      text: newTodo.value.trim(),
+      done: false,
+    });
     newTodo.value = "";
     saveTodos();
   }
 };
 
-const removeTodo = (todo: { text: string; done: boolean }) => {
-  todos.value = todos.value.filter((t) => t !== todo);
+const removeTodo = (todo: { id: number; text: string; done: boolean }) => {
+  todos.value = todos.value.filter((t) => t.id !== todo.id);
   saveTodos();
 };
 
@@ -45,7 +49,7 @@ const filteredTodos = computed(() => {
       <button @click="addTodo">Add</button>
     </div>
     <ul>
-      <li class="list" v-for="todo in filteredTodos" :key="todo.text">
+      <li class="list" v-for="todo in filteredTodos" :key="todo.id">
         <input class="input" type="checkbox" v-model="todo.done" />
         <span :class="{ done: todo.done }">{{ todo.text }}</span>
         <button @click="removeTodo(todo)">Delete</button>
