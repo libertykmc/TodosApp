@@ -36,6 +36,7 @@ const addTodo = () => {
       text: newTodo.value.trim(),
       done: false,
       category: selectedCategory.value,
+      editing: false,
     });
     newTodo.value = "";
     saveTodos();
