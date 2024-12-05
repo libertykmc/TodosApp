@@ -9,11 +9,21 @@ const loadTodos = (): Todo[] => {
 
 const hideCompleted = ref(false);
 const newTodo = ref("");
+const todos = ref<Todo[]>([]);
+const sortOption = ref("date");
+const searchQuery = ref("");
+const isDarkMode = ref(false);
+
+const categories = ref(["Работа", "Личное", "Учеба"]);
+const selectedCategory = ref(categories.value[0]);
 
 onMounted(() => {
   todos.value = loadTodos();
+  document.documentElement.setAttribute(
+    "data-theme",
+    isDarkMode.value ? "dark" : "light"
+  );
 });
-const todos = ref<Todo[]>([]);
 
 const saveTodos = () => {
   localStorage.setItem("todos", JSON.stringify(todos.value));
@@ -25,6 +35,7 @@ const addTodo = () => {
       id: Date.now(),
       text: newTodo.value.trim(),
       done: false,
+      category: selectedCategory.value,
     });
     newTodo.value = "";
     saveTodos();
@@ -36,14 +47,59 @@ const removeTodo = (todo: Todo) => {
   saveTodos();
 };
 
-const filteredTodos = computed(() => {
-  return hideCompleted.value ? todos.value.filter((t) => !t.done) : todos.value;
+const editTodo = (todo: Todo) => {
+  todo.editing = true;
+};
+
+const saveEditedTodo = (todo: Todo) => {
+  todo.editing = false;
+  saveTodos();
+};
+
+const toggleDarkMode = () => {
+  isDarkMode.value = !isDarkMode.value;
+  document.documentElement.setAttribute(
+    "data-theme",
+    isDarkMode.value ? "dark" : "light"
+  );
+};
+
+const clearCompleted = () => {
+  todos.value = todos.value.filter((t) => !t.done);
+  saveTodos();
+};
+
+const toggleAll = () => {
+  const allDone = todos.value.every((t) => t.done);
+  todos.value.forEach((t) => (t.done = !allDone));
+  saveTodos();
+};
+
+const sortedTodos = computed(() => {
+  let filtered = todos.value;
+  if (hideCompleted.value) {
+    filtered = filtered.filter((t) => !t.done);
+  }
+  if (searchQuery.value) {
+    filtered = filtered.filter((t) =>
+      t.text.toLowerCase().includes(searchQuery.value.toLowerCase())
+    );
+  }
+  if (sortOption.value === "alphabetical") {
+    return filtered.sort((a, b) => a.text.localeCompare(b.text));
+  }
+  return filtered.sort((a, b) => b.id - a.id);
 });
 </script>
 
 <template>
   <div class="container">
     <h1>Write your plans here</h1>
+
+    <button @click="toggleDarkMode">
+      {{ isDarkMode ? "Светлая тема" : "Темная тема" }}
+    </button>
+
     <div class="inputholder">
       <input
         class="input"
@@ -51,19 +107,50 @@ const filteredTodos = computed(() => {
         placeholder="Add Todo"
         v-model="newTodo"
       />
+      <select v-model="selectedCategory">
+        <option v-for="category in categories" :key="category">
+          {{ category }}
+        </option>
+      </select>
       <button @click="addTodo">Add</button>
     </div>
+
+    <div class="controls">
+      <select v-model="sortOption">
+        <option value="date">Сортировать по дате</option>
+        <option value="alphabetical">Сортировать по алфавиту</option>
+      </select>
+      <input type="text" v-model="searchQuery" placeholder="Искать задачи" />
+    </div>
+
     <ul>
-      <li class="list" v-for="todo in filteredTodos" :key="todo.id">
+      <li class="list" v-for="todo in sortedTodos" :key="todo.id">
         <input class="input" type="checkbox" v-model="todo.done" />
-        <span :class="{ done: todo.done }">{{ todo.text }}</span>
+        <span :class="{ done: todo.done }" @dblclick="editTodo(todo)">
+          {{ todo.text }} ({{ todo.category }})
+        </span>
+        <input
+          v-if="todo.editing"
+          v-model="todo.text"
+          @blur="saveEditedTodo(todo)"
+        />
         <button @click="removeTodo(todo)">Delete</button>
       </li>
     </ul>
 
+    <button @click="toggleAll">
+      {{
+        todos.every((t) => t.done) ? "Снять отметку со всех" : "Завершить все"
+      }}
+    </button>
+    <button @click="clearCompleted">Удалить выполненные</button>
     <button @click="hideCompleted = !hideCompleted">
       {{ hideCompleted ? "Показать все" : "Скрыть выполненные" }}
     </button>
+
+    <div>
+      Прогресс: {{ todos.filter((t) => t.done).length }} / {{ todos.length }}
+    </div>
   </div>
 </template>
 
@@ -103,6 +190,12 @@ h1 {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 button {
