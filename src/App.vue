@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { Todo } from "./types/todo";
 
-const loadTodos = (): { id: number; text: string; done: boolean }[] => {
+const loadTodos = (): Todo[] => {
   const storedTodos = localStorage.getItem("todos");
   return storedTodos ? JSON.parse(storedTodos) : [];
 };
 
 const hideCompleted = ref(false);
 const newTodo = ref("");
-const todos = ref<{ id: number; text: string; done: boolean }[]>(loadTodos());
+
+onMounted(() => {
+  todos.value = loadTodos();
+});
+const todos = ref<Todo[]>([]);
 
 const saveTodos = () => {
   localStorage.setItem("todos", JSON.stringify(todos.value));
@@ -26,7 +31,7 @@ const addTodo = () => {
   }
 };
 
-const removeTodo = (todo: { id: number; text: string; done: boolean }) => {
+const removeTodo = (todo: Todo) => {
   todos.value = todos.value.filter((t) => t.id !== todo.id);
   saveTodos();
 };
@@ -69,6 +74,7 @@ const filteredTodos = computed(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  font-family: "Open Sans", sans-serif;
 }
 
 h1 {
